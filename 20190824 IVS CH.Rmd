@@ -6,82 +6,85 @@ author:
   emaail : "markus.ilg@markus-ilg.at"
 ---
 
+### Überblick
+
+Begleitendes Beispiel zum Aufsatz:  
+Ilg, Markus; Baumeister, Alexander (2019): Analytics im Marketing-Controlling. In: Die Digitalisierung des Controllings: Anwendungsbeispiele aus Theorie und Praxis, hrsg. von Imke Keimer und Ulrich Egle. Springer.
+
 ```{r setup, include=FALSE}
 # Initialiserung des Notebooks
 knitr::opts_chunk$set(echo = FALSE)
 
 # Benötigte Bibliothekn laden
-library(tidyverse) # readr, dplyr, ... 
-library(lubridate) # Datum und Uhrzeit
-library(modelr)    # Modellierung
-library(broom)     # Zusammenfassung von Modellergebnissen in Dataframes
+library(tidyverse)  # readr, dplyr, ... 
+library(lubridate)  # Datum und Uhrzeit
+library(modelr)     # Modellierung
+library(broom)      # Zusammenfassung von Modellergebnissen in Dataframes
+ 
+library(lmtest)     # für Goldfeldt/Quandt-Test
+library(car)        # für VIF
 
-library(lmtest) # für Goldfeldt/Quandt-Test
-library(car) # für VIF
+theme_set(theme_bw()) # Abbildungen im Druck besser lesbar als mit dem Default-Theme theme_gray()
 
-theme_set(theme_bw()) # im Druck vermutlich besser als das Default-Theme theme_gray()
-
+# Berechne den letzten Tag des Monats
 monthsEnd <- function(Jahr, Monat) {
-  # gibt das Monatsende zurück
   require(lubridate)
   paste(Jahr, Monat, "01", sep = "-") %>% ymd() %>% ceiling_date(unit = "months") - 1
 }
 
+# Formatiere "1.234,56" statt "1,234.56"
 formatT <- function(n) {
   format(n, big.mark = ".", decimal.mark = ",")
 }
 ```
-
-# Überblick
-
-### Ziel
-Demonstration der Einsatzmöglichkeiten der Zeitreihenanalyse für Aufgaben im Marketingcontrolling.  
-
 
 ### Datenherkunft
 Schweizerische Eidgenossenschaft - Bundesamt für Statistik.  
 Abgerufen aus STAT-TAB am 24.8.2019:  
 https://www.pxweb.bfs.admin.ch/pxweb/de/px-x-1103020200_120/-/px-x-1103020200_120.px
 
-
 ### Datenaufbereitung
 
 Die Daten wurden aus STAT-TAB als csv-Datei exportiert.
 
 ```{r message=FALSE}
+
+# csv als Rohdaten importieren
 ivs_raw <-
   read_csv(file = "Daten/20190824 Neuzulassungen CH.csv",
            skip = 2,
            locale = locale(encoding = "latin1")) # Windows Latin 1
 
+# Beschränkung auf relevante Daten
 ivs_simple <- ivs_raw %>%
-  select(-"Fahrzeuggruppe / -art") %>% # Es wurde nur Personenkraftwagen ausgewählt, Spalte Fahrzeugruppe löschen
+  select(-"Fahrzeuggruppe / -art") %>% # Spalte Fahrzeugruppe löschen
   gather(key = Jahr, value = "IVS", -Monat) %>% # die Jahresspalten in Zeilen umbauen
   mutate(Datum = monthsEnd(Jahr, Monat)) %>%  # Jahr Monat umbauen auf eine Datum zum Monatsende
-  select(Datum, IVS)
+  select(Datum, IVS) # nur die Spalten Datum und IVS auswählen
 
-p <- ivs_simple %>%
+# Darstellung der monatlichen Inverkehrssetzungen als Scatterplot
+ivs_simple %>%
   ggplot(aes(x = Datum)) +
-  scale_x_date(
+  scale_x_date( # Formatierungsanweisungen für die x-Achse
     name = "",
     date_labels = "%m/%y",
     date_minor_breaks = "2 months",
     date_breaks = "years"
   ) +
-  scale_y_continuous(
+  scale_y_continuous( # Formatierungsanweisungen für die y-Achse
     name = "Inverkehrssetzungen pro Monat",
     limits = c(0, 45000),
-    # breaks = seq(0, 15000, by = 2000),
-    labels = formatT
+    labels = formatT # Anzeige der Skala mit Tausender-Punkt
   ) +
-  # geom_line(aes(y = IVS)) +
-  geom_point(aes(y = IVS, color = (IVS > 40000))) +
-  # geom_smooth(aes(y = IVS), method = "lm") +
-  scale_colour_manual(values = c("black", "red")) +
-  guides(color = "none") +
+  geom_point(aes(
+    y = IVS, # IVS auf der y-Achse
+    shape = (IVS > 40000), # eigene Form für Werte über 40000
+    color = (IVS > 40000)  # eigene Farbe für Werte über 40000
+  )) +
+  scale_colour_manual(values = c("black", "red")) + # manuelle Farbskala
+  guides(color = "none") + # Keine Legende für die Farbe
   labs(title = "monatliche Inverkehrssetzungen von Personenkraftwagen",
        subtitle = "Schweiz, 2005 - 2018")
-p
 
 ```
 
@@ -95,33 +98,31 @@ summary(ivs_simple)
 
 ```
 
-In der folgenden Abbildung sind die Daten aus dem Berichtsjahr 2018 blau gekennzeichnet, das sie in der Folge nicht zur Schätzung sondern zur Validierung des Modells herangezogen werden, um dessen Prognosefähigkeit beurteilen zu können. Konnte man beim Analysezeitraum 2005 - 2018 noch einen positiven lineare Trend bei Inverkehrssetzungen vermuten, so ist dies in der verkürzten Analyseperiode nicht erkennbar. Die Werte schwanken zudem erheblich, wobei die meisten (90 %) der Werte zwischen `r formatT(round(quantile(ivs_simple$IVS, 0.10), -3))` und `r formatT(round(quantile(ivs_simple$IVS, 0.90), -3))` Inverkehrssetzungen liegen.
+In der folgenden Abbildung sind die Daten aus dem Berichtsjahr 2018 blau gekennzeichnet, das sie in der Folge nicht zur Schätzung sondern zur Validierung des Modells herangezogen werden, um dessen Prognosefähigkeit beurteilen zu können. Konnte man beim Analysezeitraum 2005 - 2018 noch einen positiven lineare Trend bei Inverkehrssetzungen vermuten, so ist dies in der verkürzten Analyseperiode nicht erkennbar. Die Werte schwanken zudem erheblich, wobei die meisten (90 %) der Werte zwischen `r formatT(round(quantile(ivs_simple$IVS, 0.10), -2))` und `r formatT(round(quantile(ivs_simple$IVS, 0.90), -2))` Inverkehrssetzungen liegen.
 
 ```{r}
-p <- ivs_simple %>%
-  ggplot(aes(x = Datum)) +
+p <- ivs_simple %>% # Diagrammgrunddaten festlegen
+  ggplot(aes(x = Datum)) + # Datumswerte auf der x-Achse
   scale_x_date(
+    # Formatierung der x-Achse
     name = "",
     limits = c(ymd("2013-01-01", "2018-12-31")),
-    # limits = c(ymd("2010-12-31", "2016-12-31")),
     date_labels = "%m/%y",
     date_minor_breaks = "2 months",
     date_breaks = "years"
   ) +
-  scale_y_continuous(
+  scale_y_continuous( # Formatierung der y-Achse
     name = "Inverkehrssetzungen pro Monat",
     limits = c(0, 45000),
-    # breaks = seq(0, 15000, by = 2000),
-    labels = formatT
-  ) +
-  # geom_smooth(aes(y = IVS), method = "lm", color = "light blue", se = FALSE) +
-  scale_colour_manual(values = c("black", "blue")) +
-  guides(color = "none") +
+    labels = formatT) +
+  scale_colour_manual(values = c("black", "blue")) + # eigene Farbskala
+  guides(color = "none") + # keine Legende für die Farbe
   labs(title = "monatliche Inverkehrssetzungen von Personenkraftwagen",
        subtitle = "Schweiz, 2013 - 2018")
 
-p + geom_point(aes(y = IVS, color = (year(Datum) == 2018)))
-
+p + # Punkte über das Diagramm legen
+  geom_point(aes(y = IVS,
+                 color = (year(Datum) == 2018)))
 
 ```
 
