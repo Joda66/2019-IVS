@@ -1,0 +1,99 @@
+"Neue Inverkehrsetzungen von Strassenfahrzeugen nach Fahrzeuggruppe, Fahrzeugart"
+
+"Monat","Fahrzeuggruppe / -art","Treibstoff","2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018"
+"Januar","> Personenwagen","Benzin",12203,12641,11917,13441,11730,12561,13435,14671,12274,12031,10595,11130,10712,13366
+"Januar","> Personenwagen","Diesel",5300,6018,5978,7785,5912,6295,7583,9812,8915,8343,7865,8905,8287,7601
+"Januar","> Personenwagen","Benzin-elektrisch",0,18,153,218,171,309,305,287,484,377,406,588,611,888
+"Januar","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,1,3,68,86,59,59,24,32
+"Januar","> Personenwagen","Elektrisch",0,1,1,2,2,10,38,51,66,109,146,239,313,262
+"Januar","> Personenwagen","Gas (mono- und bivalent)",33,59,168,91,80,76,36,43,51,28,56,39,47,91
+"Januar","> Personenwagen","Anderer",26,98,96,127,46,30,39,55,14,3,2,1,0,18
+"Januar","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Februar","> Personenwagen","Benzin",11566,11987,12446,14001,11911,12645,15101,14781,13114,13115,13121,12885,13036,14071
+"Februar","> Personenwagen","Diesel",4900,5418,5999,7366,5492,5923,7653,9271,8913,8779,9167,9346,9087,7070
+"Februar","> Personenwagen","Benzin-elektrisch",0,21,180,268,214,246,411,309,483,384,569,672,705,864
+"Februar","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,1,12,86,57,62,66,26,10
+"Februar","> Personenwagen","Elektrisch",3,0,3,2,2,7,32,25,36,81,100,160,213,418
+"Februar","> Personenwagen","Gas (mono- und bivalent)",42,53,119,93,58,52,46,37,78,37,69,63,56,103
+"Februar","> Personenwagen","Anderer",46,111,45,94,41,26,42,26,3,1,0,0,0,0
+"Februar","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"März","> Personenwagen","Benzin",17139,19181,17691,15593,16329,20136,20779,21340,17800,16266,18802,17102,18231,18146
+"März","> Personenwagen","Diesel",7097,7657,7864,7640,6970,8160,9821,11790,10444,9616,11937,10997,11021,8450
+"März","> Personenwagen","Benzin-elektrisch",0,28,312,248,336,354,565,551,733,637,975,894,978,1163
+"März","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,1,1,80,101,59,80,77,15,41
+"März","> Personenwagen","Elektrisch",0,1,2,2,1,10,67,90,70,237,369,436,585,691
+"März","> Personenwagen","Gas (mono- und bivalent)",42,85,126,82,78,104,94,57,58,62,101,55,62,90
+"März","> Personenwagen","Anderer",70,105,113,107,55,45,55,56,14,2,2,1,0,0
+"März","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"April","> Personenwagen","Benzin",20334,17734,17002,19484,17468,18581,19068,18173,17461,16991,17289,16500,15215,17312
+"April","> Personenwagen","Diesel",7257,6453,7278,9054,7047,7087,8706,10416,10263,10036,10669,11375,9565,7511
+"April","> Personenwagen","Benzin-elektrisch",0,30,228,356,328,311,596,513,556,572,806,776,919,1246
+"April","> Personenwagen","Diesel-elektrisch",0,0,0,0,1,0,0,71,79,82,101,72,15,36
+"April","> Personenwagen","Elektrisch",2,0,0,1,2,6,39,114,45,161,364,239,235,304
+"April","> Personenwagen","Gas (mono- und bivalent)",46,52,104,93,98,50,46,42,62,61,109,66,46,147
+"April","> Personenwagen","Anderer",153,93,117,90,53,20,41,44,10,2,1,1,0,2
+"April","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Mai","> Personenwagen","Benzin",18098,19640,18172,17898,16305,17554,19668,18230,16740,15847,16415,14832,16749,17720
+"Mai","> Personenwagen","Diesel",6314,7778,8222,8607,6325,7008,10069,11178,10032,9429,10260,10240,10276,8685
+"Mai","> Personenwagen","Benzin-elektrisch",0,44,247,246,278,448,407,423,473,525,680,775,987,1168
+"Mai","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,0,102,74,52,97,58,26,10
+"Mai","> Personenwagen","Elektrisch",0,1,1,3,1,5,39,92,67,170,380,193,281,288
+"Mai","> Personenwagen","Gas (mono- und bivalent)",41,54,159,79,94,70,105,46,72,68,91,79,56,70
+"Mai","> Personenwagen","Anderer",137,58,110,96,39,27,36,40,10,0,2,0,0,1
+"Mai","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Juni","> Personenwagen","Benzin",19425,21245,20484,19831,18530,22357,18922,25504,17854,16993,19347,17430,18211,20044
+"Juni","> Personenwagen","Diesel",7141,8304,9868,9173,7719,9035,9349,14533,10524,10237,12705,12646,12196,9399
+"Juni","> Personenwagen","Benzin-elektrisch",0,42,322,317,384,403,433,626,434,470,651,847,1157,1383
+"Juni","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,0,119,65,44,113,55,24,18
+"Juni","> Personenwagen","Elektrisch",1,1,0,3,7,65,40,75,179,182,502,388,500,590
+"Juni","> Personenwagen","Gas (mono- und bivalent)",32,98,243,118,128,62,51,36,80,84,172,98,53,98
+"Juni","> Personenwagen","Anderer",138,95,146,120,58,38,67,54,4,2,2,0,0,4
+"Juni","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Juli","> Personenwagen","Benzin",15646,14628,15520,17159,16412,17350,17088,14864,15555,16398,17240,14462,14349,16240
+"Juli","> Personenwagen","Diesel",5940,6768,8546,8402,7135,7834,8800,8920,9991,10397,11768,10596,9271,7616
+"Juli","> Personenwagen","Benzin-elektrisch",0,161,359,296,317,382,259,463,438,517,593,867,815,1141
+"Juli","> Personenwagen","Diesel-elektrisch",0,1,0,0,0,0,1,124,120,38,125,56,12,58
+"Juli","> Personenwagen","Elektrisch",0,0,1,1,5,13,27,68,107,166,360,143,263,245
+"Juli","> Personenwagen","Gas (mono- und bivalent)",28,125,123,90,90,66,61,27,61,88,89,65,87,78
+"Juli","> Personenwagen","Anderer",59,43,220,129,47,14,44,21,9,6,0,0,1,1
+"Juli","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"August","> Personenwagen","Benzin",13251,12026,13383,12708,12478,13650,14664,12898,12860,12034,13546,12156,13817,13796
+"August","> Personenwagen","Diesel",4819,5320,6855,5907,5005,6035,7448,8590,7496,7216,9246,8678,7894,6234
+"August","> Personenwagen","Benzin-elektrisch",0,158,392,288,347,355,420,467,492,344,507,731,979,1165
+"August","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,0,151,63,38,56,32,21,90
+"August","> Personenwagen","Elektrisch",1,1,1,1,3,19,23,56,113,128,264,294,337,334
+"August","> Personenwagen","Gas (mono- und bivalent)",22,78,110,94,84,49,50,23,53,94,66,54,62,61
+"August","> Personenwagen","Anderer",55,27,381,91,23,16,38,20,3,2,0,0,1,0
+"August","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"September","> Personenwagen","Benzin",14803,13295,13474,14482,14377,15016,17958,12201,13526,13179,13774,14518,14409,12680
+"September","> Personenwagen","Diesel",6094,6030,6671,6777,6101,6931,8839,8322,8416,7818,9508,9969,8361,5885
+"September","> Personenwagen","Benzin-elektrisch",0,187,329,252,482,318,547,514,462,524,527,1080,1196,1233
+"September","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,1,88,82,78,79,45,19,98
+"September","> Personenwagen","Elektrisch",0,2,0,0,3,9,49,107,135,134,318,482,562,546
+"September","> Personenwagen","Gas (mono- und bivalent)",31,64,127,96,107,48,40,60,79,88,66,86,59,18
+"September","> Personenwagen","Anderer",65,26,89,88,33,27,30,25,6,0,1,0,0,2
+"September","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Oktober","> Personenwagen","Benzin",14129,13877,15448,15997,15621,16251,17855,15207,15598,15688,14201,12994,14799,14680
+"Oktober","> Personenwagen","Diesel",6317,6853,8265,7813,6764,8069,9294,10538,10158,9670,10188,9105,8313,5996
+"Oktober","> Personenwagen","Benzin-elektrisch",0,149,261,212,345,352,500,626,520,624,609,843,1020,1400
+"Oktober","> Personenwagen","Diesel-elektrisch",0,0,0,1,0,0,1,100,69,68,92,40,15,126
+"Oktober","> Personenwagen","Elektrisch",0,0,1,1,18,15,16,95,125,126,267,211,366,453
+"Oktober","> Personenwagen","Gas (mono- und bivalent)",33,185,159,116,100,28,28,41,58,224,85,150,101,11
+"Oktober","> Personenwagen","Anderer",74,25,88,124,46,21,35,24,9,1,5,11,0,0
+"Oktober","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"November","> Personenwagen","Benzin",14324,14475,15813,13166,15012,16223,18239,15634,14809,13544,14149,14643,16208,14777
+"November","> Personenwagen","Diesel",6145,7101,8416,6790,6525,8449,10591,10473,9289,9347,10953,10396,8513,7164
+"November","> Personenwagen","Benzin-elektrisch",0,232,238,165,375,387,481,526,487,492,522,921,1038,1370
+"November","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,3,8,86,82,57,76,43,51,142
+"November","> Personenwagen","Elektrisch",2,0,4,1,6,16,55,60,176,161,420,176,725,518
+"November","> Personenwagen","Gas (mono- und bivalent)",37,140,122,82,74,48,43,63,97,92,69,91,52,14
+"November","> Personenwagen","Anderer",90,25,88,57,41,16,45,27,4,2,2,0,0,1
+"November","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Dezember","> Personenwagen","Benzin",14202,15078,13705,15391,16001,18252,18763,17073,17479,18789,16990,20014,17901,16015
+"Dezember","> Personenwagen","Diesel",6790,7157,8371,8052,7760,9721,11171,11068,11215,12416,13633,13342,11064,8749
+"Dezember","> Personenwagen","Benzin-elektrisch",0,201,199,225,322,381,520,416,631,699,831,955,1159,1542
+"Dezember","> Personenwagen","Diesel-elektrisch",0,0,0,0,0,0,4,51,76,69,169,35,34,208
+"Dezember","> Personenwagen","Elektrisch",4,2,5,7,7,26,27,91,273,293,392,564,549,762
+"Dezember","> Personenwagen","Gas (mono- und bivalent)",55,71,93,102,72,68,51,44,42,115,107,98,88,24
+"Dezember","> Personenwagen","Anderer",80,33,199,79,47,22,54,15,1,1,11,0,1,3
+"Dezember","> Personenwagen","Ohne Motor",0,0,0,0,0,0,0,0,0,0,0,0,0,0
