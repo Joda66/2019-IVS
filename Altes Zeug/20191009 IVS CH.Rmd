@@ -1,0 +1,477 @@
+---
+title: "Inverkehrssetzungen in der Schweiz"
+output: html_notebook
+author: 
+- name   : "Markus Ilg"
+  email : "markus.ilg@markus-ilg.at"
+
+---
+
+### Überblick
+
+Begleitendes Beispiel (Ilg / Baumeister 2019).
+
+```{r setup, include=FALSE}
+# Initialiserung des Notebooks
+knitr::opts_chunk$set(echo = FALSE)
+
+# Benötigte Bibliothekn laden
+library(tidyverse)  # readr, dplyr, ... 
+library(lubridate)  # Datum und Uhrzeit
+library(modelr)     # Modellierung
+library(broom)      # Zusammenfassung von Modellergebnissen in Dataframes
+library(corrplot)      # Zusammenfassung von Modellergebnissen in Dataframes
+ 
+library(lmtest)     # für Goldfeldt/Quandt-Test
+library(car)        # für VIF
+
+library(forecast)   # für zB ggtsdisplay.
+library(astsa)      # für sarima, sarima.for
+
+theme_set(theme_bw()) # Abbildungen im Druck besser lesbar als mit dem Default-Theme theme_gray()
+
+# Berechne den letzten Tag des Monats
+monthsEnd <- function(Jahr, Monat) {
+  require(lubridate)
+  paste(Jahr, Monat, "01", sep = "-") %>% ymd() %>% ceiling_date(unit = "months") - 1
+}
+
+# Formatiere "1.234,56" statt "1,234.56"
+formatT <- function(n) {
+  format(n, big.mark = ".", decimal.mark = ",")
+}
+```
+
+### Datenherkunft
+Schweizerische Eidgenossenschaft - Bundesamt für Statistik.  
+Abgerufen aus STAT-TAB am 24.8.2019:  
+https://www.pxweb.bfs.admin.ch/pxweb/de/px-x-1103020200_120/-/px-x-1103020200_120.px
+
+### Datenaufbereitung
+
+Die Daten wurden aus STAT-TAB als csv-Datei exportiert.
+
+```{r message=FALSE}
+
+# csv als Rohdaten importieren
+ivs_raw <-
+  read_csv(file = "Daten/20190824 Neuzulassungen CH.csv",
+           skip = 2,
+           locale = locale(encoding = "latin1")) # Windows Latin 1
+
+# Beschränkung auf relevante Daten
+ivs_simple <- ivs_raw %>%
+  select(-"Fahrzeuggruppe / -art") %>% # Spalte Fahrzeugruppe löschen
+  gather(key = Jahr, value = "IVS", -Monat) %>% # die Jahresspalten in Zeilen umbauen
+  mutate(Datum = monthsEnd(Jahr, Monat)) %>%  # Jahr Monat umbauen auf eine Datum zum Monatsende
+  select(Datum, IVS) # nur die Spalten Datum und IVS auswählen
+
+# Darstellung der monatlichen Inverkehrssetzungen als Scatterplot
+ivs_simple %>%
+  ggplot(aes(x = Datum)) +
+  scale_x_date( # Formatierungsanweisungen für die x-Achse
+    name = "",
+    date_labels = "%m/%y",
+    date_minor_breaks = "2 months",
+    date_breaks = "years"
+  ) +
+  scale_y_continuous( # Formatierungsanweisungen für die y-Achse
+    name = "Inverkehrssetzungen pro Monat",
+    limits = c(0, 45000),
+    labels = formatT # Anzeige der Skala mit Tausender-Punkt
+  ) +
+  geom_point(aes(
+    y = IVS, # IVS auf der y-Achse
+    shape = (IVS > 40000), # eigene Form für Werte über 40000
+    color = (IVS > 40000)  # eigene Farbe für Werte über 40000
+  )) +
+  scale_colour_manual(values = c("black", "red")) + # manuelle Farbskala
+  guides(color = "none") + # Keine Legende für die Farbe
+  guides(shape = "none") + # Keine Legende für die Farbe
+  labs(title = "monatliche Inverkehrssetzungen von Personenkraftwagen",
+       subtitle = "Schweiz, 2005 - 2018")
+
+```
+
+Sofort fällt der Peak im Juni 2012 bei Inverkehrssetzungen auf - verursacht durch eine Änderung der CO2-Emissionsvorschriften ab Juli 2012 (https://www.bfs.admin.ch/bfs/de/home/dienstleistungen/fuer-medienschaffende/medienmitteilungen.assetdetail.36344.html).  
+
+Für den Zweck der Analyse - eine Prognose der Entwicklung des Automobilmarktes für ein Jahr, ist dieser Ausreißer eher störend. Sinnvoller ist es auf Daten ab 2013 zurückzugreifen. Ein erster Blick auf die Daten mit `summary` zeigt, dass sich die Inverkehrssetzungen im Intervall von `r formatT(min(ivs_simple$IVS))` bis `r formatT(max(ivs_simple$IVS))` bewegen, im Durchschnitt sind es `r formatT(round(mean(ivs_simple$IVS),0))` Inverkehrssetzungen. Es werden keine fehlenden Werte angezeigt.
+
+```{r}
+ivs_simple <- ivs_simple %>% filter(Datum > ymd("2012-12-31"))
+summary(ivs_simple)
+
+```
+
+In der folgenden Abbildung sind die Daten aus dem Berichtsjahr 2018 blau gekennzeichnet, das sie in der Folge nicht zur Schätzung sondern zur Validierung des Modells herangezogen werden, um dessen Prognosefähigkeit beurteilen zu können. Konnte man beim Analysezeitraum 2005 - 2018 noch einen positiven lineare Trend bei Inverkehrssetzungen vermuten, so ist dies in der verkürzten Analyseperiode nicht erkennbar. Die Werte schwanken zudem erheblich, wobei die meisten (90 %) der Werte zwischen `r formatT(round(quantile(ivs_simple$IVS, 0.10), -2))` und `r formatT(round(quantile(ivs_simple$IVS, 0.90), -2))` Inverkehrssetzungen liegen.
+
+```{r}
+p <- ivs_simple %>% # Diagrammgrunddaten festlegen
+  ggplot(aes(x = Datum)) + # Datumswerte auf der x-Achse
+  scale_x_date(
+    # Formatierung der x-Achse
+    name = "",
+    limits = c(ymd("2013-01-01", "2018-12-31")),
+    date_labels = "%m/%y",
+    date_minor_breaks = "2 months",
+    date_breaks = "years"
+  ) +
+  scale_y_continuous( # Formatierung der y-Achse
+    name = "Inverkehrssetzungen pro Monat",
+    limits = c(0, 45000),
+    labels = formatT) +
+  scale_colour_manual(values = c("black", "blue")) + # eigene Farbskala
+  guides(color = "none") + # keine Legende für die Farbe
+  labs(title = "monatliche Inverkehrssetzungen von Personenkraftwagen",
+       subtitle = "Schweiz, 2013 - 2018")
+
+p + # Punkte über das Diagramm legen
+  geom_point(aes(y = IVS,
+                 color = (year(Datum) == 2018)))
+
+```
+
+### Modellierung
+#### Lineares Grundmodell
+
+Zahlreiche Modelle werden in der Zeitreihenanalyse verwendet (vgl. einführend [Backhaus et al. (2018)](https://www.springer.com/de/book/9783662566541), S. 126 ff). Beim *linearen Modell* erfolgt in der Grundform additive Zerlegung $Y = A + K + S + u$ mit $Y$ als zu erklärender Variable, $A$ als Trendkomponente, $K$ als Konjunkturkomponente (lange zyklische Komponente), $S$ als Saisonkomponente und $u$ als Störgröße oder zufällige Komponente. Im einfachsten Fall ohne Saison- und Konjunkturkomplenten reduziert sich das Modell auf $Y = A + u$. Mit der Spezifikation der Trendkomponente $A$ entsteht das lineare Trendmodell: $$Y = \alpha + \beta \cdot t + u$$
+
+Auch zahlreiche nichtlineare Modelle können über geeignete Transformationen im linearem Kontext analysiert werden. Zu nennen sind bspw. das Quadradwurzelmodell $Y = \alpha + \beta \sqrt t + u$ oder das logarithmische Modell $Y = \alpha + \beta \cdot \ln (t) + u$ , die beide Sättigungseffekte abbilden können. Für einen Überblick über weitere Modelle und geeignete Linearisierungen vgl. [Backhaus et al. (2018)](https://www.springer.com/de/book/9783662566541), S 148 ff.
+
+
+```{r}
+# Lineare Rgression mit der Funktion lm, Datum als Regressor, IVS als Regressand
+mod <- lm(formula = IVS ~ Datum, data = ivs_simple)
+
+# Aufbereitung der Modellergebnisse in Dataframes mit Funktionen aus dem broom-package.
+tidy_mod <- tidy(mod)
+glance_mod <- glance(mod)
+augment_mod <- augment(mod)
+summary(mod)
+```
+Das Bestimmheitsmaß $R^2$ ist praktisch 0, das Modell trägt nicht zur Erklärung der Streuung der Zeitreihe bei. Sowohl das Modell insgesamt (F-Statistik) als auch die Parameterschätzung für den Regressor $Datum$ sind nicht siginifikant.
+
+#### Berücksichtigung saisonaler Schwankungen
+
+Das lineare Trendmodell liefert keinen Erklärungsbeitrag. Werden die Datenpunkte als Liniendiagramm dargestellt, wird eine zyklische Schwankung deutlich. Für die Modellbildung werden nur die Daten von 2013 bis 2017 verwendet, 2018 wird für die Beurteilung der Modellperformance zurückgehalten.
+
+```{r}
+
+# Die bereits berechneten Grunddaten des Diagramms werden hier wiederverwendet.
+# Die Datenwerte werden jetzt aber als Liniendiagramm eingefügt.
+p + geom_line(aes(y = IVS, color = (year(Datum) == 2018)))
+
+```
+
+Modelliert man die monatlichen Schwankungen, erhöht sich der Erklärungsgehalt des Modells deutlich. Dazu werden die Monate als zweistellige Zeichenketten modelliert ("01" bis "12"). `R` erzeugt daraus automatisch 11 Dummyvariablen zur Abbildung der Monate im Modell. 
+
+```{r}
+
+# Der einfach Dataframe ivs_simple mit den Spalten IVS und Datum
+# wir hier erweitert: die Nummer des Monats wird als zweistellige Zeichenkette ergänzt.
+ivs_simple <- ivs_simple %>% 
+  mutate(Monat = str_pad(month(Datum), 2, pad = "0"))
+
+# Aufteilen der Daten in ein Trainings- und ein Testset
+ivs_simple_train <- ivs_simple %>% filter(Datum < date("2018-01-01"))
+ivs_simple_test <- ivs_simple %>% filter(Datum >= date("2018-01-01"))
+
+# Erneute Berechnung des Modells ...
+mod <- lm(formula = IVS ~ Datum + Monat, data = ivs_simple_train)
+
+# ... und Ausgabe der Modellergebnisse
+summary(mod)
+
+```
+
+Der Anteil der erklärten Varianz erhöht sich nun auf über 86 Prozent. Die meisten der Saision-Dummies haben statistisch signifikante Koeffizienten, gleiches gilt für das Modell im Gesamten (vgl. F-Statistik).
+
+#### Prüfung der Modellierungsvoraussetzungen
+Wir prüfen die Modellierungsvoraussetzungen analog zu [Backhaus et al. (2018)](https://www.springer.com/de/book/9783662566541), S. 98 ff).
+
+(1) Nichtlinearität: die graphische Darstellung lässt - unter Berücksichtigung der Saisonkomponente einen darunter liegenden linearen Trend vermuten.
+
+(2) Erwartungswert der Störgröße = 0: ist nicht von Bedeuutung, wirkt sich ggf. auf den Koeffizienten b0 aus.
+
+(3) Falsche Regressorenauswahl: Multikollinearität falsch spezifizierter Regressoren verzerrt die Parmeterschätzer, bei fehlender Multikollinearität wirken sie sich zumindest wieder auf den Ordinatenabschnitt b0 aus. Mit $Datum$ und $Monat$ sind hier allerdings keine überflüssigen Regressoren erkennbar.
+
+(4) Heteroskedastizität: Der Plot der Residuen gegen die erklärte Variable lässt keine für Heteroskedastizität typischen Verläufe erkennen.
+
+```{r}
+
+# Dataframe um Prognosewerte und Residuen ergänzen
+df_mod <- augment(mod)
+
+#Scatterplot der Residuen gegen geschätzte Werte
+ggplot(data = df_mod, aes(x = .fitted, y = .resid)) +
+  geom_point()
+
+```
+
+Heteroskedastizität kann auch mit dem Goldfeld-Quandt-Test überprüft werden. Die Nullhypothese (Homoskedastizität) kann nicht verworfen werden.
+
+```{r}
+# Goldfeld-Quandt-Test aus dem lmtest-package.
+gqtest(mod)
+
+```
+
+
+(5) Autokorrelation: Inbesondere bei Zeitreihen besteht die Gefahr der Verzerrung des Standardfehlers der Regressionskoeffizienten durch autokorrelierte Residuen. Im Ergebnis ergeben sich dann verzerrte Konfidenzintervalle für die Regressionskoeffizienten. Eine Visuelle Prüfung erfolgt wie bei der Heterskedastizität im Plot der Residuen gegen die geschätzen Werte. Ebenso ist die Prüfung mit Durbin-Watson-Test möglich, dessen Nullhypothese (keine Autokorrelation) nicht verworfen werden kann.
+
+```{r}
+# Durbin-Watson-Test (package lmtest)
+dwtest(mod)
+```
+
+(6) Multikollinearität: Schätzungen für Regressionskoeffizienten werden unzuverlässiger, wenn sich die Koeffizenten aus anderen Modellkoeffizienten errechnen lassen. Paarweise Multikollinearität ist vorhanden, wenn der Betrag der paarweisen Korrelationen nahe 1 ist. Abhängigkeiten von mehreren anderen Variablen kann durch die Toleranz oder deren Kehrwert, den Varianz-Inflation-Factor (VIF) ermittelt werden. VIF-Werte im bereich von 10 oder größer sind auf jeden Fall problematisch. Im Beispiel ist die Multikollinearität mit Datum bzw. Monat als Regressoren nicht relevant.
+
+```{r}
+# Alle Spalten in numerische Werte umwandeln
+# m <- ivs_simple_train[,-3] %>%
+#   mutate(Datum = as.numeric(Datum))
+
+# Korrelationsmatrix berechnen und visualisieren
+# corrplot(corr = cor(m), method = "pie")
+
+# Varianz-Inflation-Faktoren berechnen
+# vif(mod)
+```
+
+(7) Normalverteilung der Residuen: Bei großer Stichprobe ist eine Abweichung von der Normalverteilungsannahme nicht so tragisch. De QQ-Plot sieht allerdings nicht perfekt aus.
+
+```{r}
+qqnorm(df_mod$.resid)
+qqline(df_mod$.resid, datax = FALSE, distribution = qnorm,
+       probs = c(0.25, 0.75), qtype = 7)
+
+```
+
+### Erstellung von Prognosen
+
+Das berechnete Modell erlaubt die Berechnung von Prognosewerten. Durch den Vergleich der Prognosewerte für die Testdaten mit den Ist-Werten der Testdaten (2018) können Performance-Maße berechnet werden, die den Vergleich unterschiedlicher Modelle erlauben.
+
+```{r}
+
+# Prognosewerte aufgrund des berechneten Modells ergänzen
+ivs_simple_test <- ivs_simple_test %>% add_predictions(model = mod)
+
+# Grafische Darstellung der Prognosen (gestrichelt)
+p + geom_line(aes(y = IVS, color = (year(Datum) == 2018))) +
+  geom_line(aes(y = pred),
+            linetype = 2, # dashed
+            color = "red",
+            data = ivs_simple_test)
+
+# Performance-Metriken
+fPerformance <- function(actual, predicted) {
+  list(mae = Metrics::mae(actual, predicted),
+    mape = Metrics::mape(actual, predicted),
+    mse = Metrics::mse(actual, predicted),
+    rmse = Metrics::rmse(actual, predicted)) %>% 
+    bind_rows()
+}
+
+# Performance-Berechnung auf der Basis der Testdaten
+fPerformance(ivs_simple_test$IVS, ivs_simple_test$pred)
+
+```
+
+<!-- Aus den Regressionskoeffizienten lässt sich eine Saisionfigur ableiten. Dies gilt ähnlich, wenn man Box-Plots der monatlich gruppierten Daten erstellt. -->
+
+<!-- ```{r} -->
+
+<!-- ivs_simple_train <- ivs_simple_train %>% add_predictions(model = mod) -->
+
+<!-- ggplot(ivs_simple_train, aes(x = Monat)) + -->
+<!--   # geom_boxplot(aes(y = IVS - mean(IVS)), alpha = 0.2, color = "grey") + -->
+<!--   geom_boxplot(aes(y = IVS - mean(IVS)), alpha = 0.2, color = "grey") + -->
+<!--   # geom_point(aes(y = IVS - mean(IVS)), alpha = 0.5) + -->
+<!--   # geom_point(aes(y = pred - mean(IVS)), color = "red", alpha = 0.5) + -->
+<!--   labs(title = "monatliche Inverkehrssetzungen von Personenkraftwagen", -->
+<!--        subtitle = "Schweiz, 2013 - 2018") -->
+
+
+<!-- ``` -->
+
+### Test einer alternative Modellierung als ARIMA
+
+```{r}
+
+ivs_ts <- ts(ivs_simple_train$IVS, start = c(2013,1), frequency = 12)
+
+ivs_ts %>% ggtsdisplay(lag.max = 60)
+ivs_ts %>% 
+  diff() %>% 
+  diff(lag = 12) %>% 
+  ggtsdisplay(lag.max = 60, main = "ivs_simple_train$IVS, two times differentiated")
+
+mod <- sarima(ivs_ts, 1,1,0, 0,1,1, 12)
+sarima(ivs_ts, 2,1,0, 0,1,1, 12)
+
+ivs_ts %>% plot()
+ivs_ts_all <- ts(ivs_simple$IVS, start = c(2013,1), frequency = 12)
+ivs_ts_all %>% plot()
+
+predictions <- sarima.for(ivs_ts, 2,1,0, 0,1,1, 12, n.ahead = 12)
+# lines(ivs_ts_all)
+
+fPerformance(ivs_simple_test$IVS, predictions$pred)
+```
+
+
+### Reduktion der Prädiktoren / V1 Saisonale Vorhersagen
+### Reduktion der Prädiktoren / V2 monatliche Vorhersagen mit Time Lag
+
+### Differenzierung der Antriebsart
+
+Die Wiederholung der Analyse mit dem zusätzlichen Regressor zeigt ein völlig anderes Bild.
+
+```{r message=FALSE}
+
+# Daten des Statistischen Bundesamtes mit Informationen zur Treibstoffart
+ivs_raw_fuel <-
+  read_csv(file = "Daten/20190824 Neuzulassungen CH Treibstoff.csv",
+           skip = 2,
+           locale = locale(encoding = "latin1")) # Windows Latin 1
+
+# Daten vorbereiten
+ivs_fuel <- ivs_raw_fuel %>%
+  select(-"Fahrzeuggruppe / -art") %>% # Es wurde nur Personenkraftwagen ausgewählt, Spalte Fahrzeugruppe löschen
+  gather(key = Jahr, value = "IVS", -Monat, -Treibstoff) %>% # die Jahresspalten in Zeilen umbauen
+  mutate(Datum = monthsEnd(Jahr, Monat)) %>%  # Jahr Monat umbauen auf eine Datum zum Monatsende
+  mutate(Monat = str_pad(month(Datum), 2, pad = "0")) %>% 
+  filter(Datum > ymd("2012-12-31")) %>% 
+  select(Datum, Monat, Treibstoff, IVS)
+
+# Graphische Darstellung, differenziert nach Treibstoffart, erzeugen aber noch nicht anzeigen
+p <- ivs_fuel %>%
+  ggplot(aes(x = Datum, color = Treibstoff,, linetype = Treibstoff)) +
+  labs(title = "Inverkehrssetzungen PKW, nach Treibstoffart",
+       subtitle = "Schweiz, 2013 - 2018")  +
+  scale_x_date(
+    name = "",
+    limits = c(ymd("2013-01-01", "2018-12-31")),
+    date_labels = "%m/%y",
+    date_minor_breaks = "2 months",
+    date_breaks = "years"
+  )
+
+# Lineare Skala
+p + scale_y_continuous(name = "Inverkehrssetzungen pro Monat", labels = formatT) +
+  geom_line(aes(y = IVS))
+
+# Logarithmische Skala
+p + scale_y_log10(name = "Inverkehrssetzungen pro Monat", labels = formatT) +
+  geom_line(aes(y = IVS), 
+            data = ivs_fuel[ivs_fuel$IVS > 0,])
+
+```
+Die Treibstoffarten "Anderer" und "Ohne Motor" spielen in der Analyse keine besondere Rolle. Zur besseren Übersichtlichkeit werden sie ausgeschlossen.
+
+```{r}
+
+# Ausschluss von Gas und Treibstoffarten "Anderer" sowie ohne Motor
+ivs_fuel <- ivs_fuel %>% 
+  # filter(!Treibstoff %in% c("Anderer", "Gas (mono- und bivalent)", "Ohne Motor"))
+  filter(!Treibstoff %in% c("Anderer", "Ohne Motor"))
+
+# Lineare Skala
+p + scale_y_continuous(name = "Inverkehrssetzungen pro Monat", labels = formatT) +
+  geom_line(aes(y = IVS, linetype = Treibstoff), data = ivs_fuel)
+
+# Logarithmische Skala
+p + scale_y_log10(name = "Inverkehrssetzungen pro Monat", labels = formatT) +
+  geom_line(aes(y = IVS, linetype = Treibstoff), 
+            data = ivs_fuel[ivs_fuel$IVS > 0,])
+
+```
+
+### Modelle je Treibstoffart
+
+#### Modelle berechnen und plotten
+
+```{r}
+# Daten in Training und Test aufsplitten
+ivs_train <- ivs_fuel %>% filter(Datum < date("2018-01-01"))
+ivs_test <- ivs_fuel %>% filter(Datum >= date("2018-01-01"))
+
+# das lineare Modell in einer Funktion kapseln
+fMod <- function(df){
+  lm(IVS ~ Datum + Monat, data = df)
+}
+
+# je Treibstoffart die Trainingsdaten gruppieren und in einen Unterdataframe sammmeln
+ivs_models <- ivs_train %>% 
+  group_by(Treibstoff) %>%
+  nest(data = c(Datum, Monat, IVS)) %>% # ein Datensatz je Treibstoffart mit Unterdataframe
+  mutate( # für jede Treibstoffart ...
+    model = map(data, fMod), # ... berechne ein lineares Modell
+    data = map2(data, model, add_residuals), # ... Residuen hinzufügen
+    data = map2(data, model, add_predictions), # ... und geschätzte Werte
+    glance = map(model, broom::glance) # Kennzuahlen zu Modellperformance berechnen
+ )
+
+# Die Unterdataframes wieder auflösen ...
+ivs_train <- ivs_models %>% unnest(cols = c(data)) %>%
+  select(-model, -glance)
+
+# ... und Modellmetriken in einem eigenen df speichern.
+ivs_models <- ivs_models %>% 
+  select(-data) %>% 
+  unnest(cols = c(glance))
+
+# Plots
+ivs_train[ivs_train$IVS > 0 & ivs_train$pred > 0,] %>% 
+  ggplot(aes(x = Datum)) + # Datum auf der x-Achsel
+  geom_line(aes(y = IVS), color = "red") + # tatsächliche Werte und ....
+  geom_line(aes(y = pred), color = "grey") + # Prediktoren auf der y-Achse
+  scale_y_log10() + # Logarithmische Ordinate
+  facet_wrap( ~ Treibstoff) # kleine Subdiagramm je Treibstoffart.
+
+# Modellmetriken ausgeben
+ivs_models %>% arrange(r.squared) 
+
+```
+
+#### Performanceberechnung
+
+Je Treibstoffart werden für das jeweilge Modell die Modellkennzahlen ermittelt.
+
+```{r}
+# Modellperformance berechnen
+
+ivs_test <- ivs_test %>%
+  group_by(Treibstoff) %>% 
+  nest(data = c(Datum, Monat, IVS)) %>% # "nest" je Treibstoffart
+  add_column(model = ivs_models$model) %>% # bereits berechnetes Modell hinzufügen
+  mutate(
+    data = map2(data, model, add_residuals), # Residuen ergänzen ...
+    data = map2(data, model, add_predictions), # Vorhersagewerte dazugeben
+    pfmc = map2(model, data, fPerformance)) %>% # Modellkennzahl berechnen.
+  select(-model) # die Spalte model wird nicht mehr benötigt
+
+ifs_test_models <- ivs_test %>% # create dataframe with model metrics
+  select(-data) %>% 
+  unnest(pfmc)
+
+ivs_test <- ivs_test %>% # erstelle einen Dataframe mit Prognosen und Residuen
+  select(-pfmc) %>% 
+  unnest(data)
+
+ivs_test[ivs_test$IVS > 0 & ivs_test$pred > 0,] %>% # bitte keine Nullen, die logarithmiert werden ...
+  ggplot(aes(x = Datum)) +
+  geom_line(aes(y = IVS), color = "red") + # tatsächliche Werte
+  geom_line(aes(y = pred), color = "grey") + # Vorhersagewerte
+  scale_y_log10() + # logarithmische Skala
+  facet_wrap(~ Treibstoff) # Unterdiagramm je Treibstoffart
+
+```
+
+### Quellen
+
+Backhaus et al. (2018): Multivariate Analysemethoden. Eine anwendungsorientierte Einführung. 15 Aufl. Berlin. Heidelberg. [Springer-Verlag](https://www.springer.com/de/book/9783662566541).
+
+Ilg, Markus; Baumeister, Alexander (2019): Analytics im Marketing-Controlling. In: Die Digitalisierung des Controllings: Anwendungsbeispiele aus Theorie und Praxis, hrsg. von Imke Keimer und Ulrich Egle. Springer.
+
+Ruppert, David; Matteson, David S. (2015): Statistics and Data Analysis for Financial Engineering [Springer-Verlag](https://www.springer.com/de/book/9781493926138)
