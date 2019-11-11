@@ -1,5 +1,6 @@
 # 2019-IVS
 
-Inverkehrssetzungen von Personenkraftwagen
+Zeitreihenanalyse am Beispiel von **Inverkehrssetzungen von Personenkraftwagen in der Schweiz**
 
-Zusatz zu Ilg/Baumeiser "Analytics im Marketing-Controlling".
+Begleitendes Beispiel zum Aufsatz  
+Ilg, Markus; Baumeister, Alexander (2019): *Business Analytics im Marketing-Controlling - Eine Anwendungsfallstudie für den Automobildmarkt* in: Digitalisierung im Controlling. Hrsg. v. Keimer, I. und Egle U., S. xxx-yyy, Berlin: Springer.  
